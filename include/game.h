@@ -14,6 +14,7 @@
 #define MAP_WIDTH 80
 #define MAP_HEIGHT 80
 #define MIN_PLAY_TIME_SEC 300 // 5 minutes minimum play time
+#define MAX_LEVEL 2  // Maximum level in the game
 
 // Game tile types
 typedef enum {
@@ -68,6 +69,8 @@ typedef struct {
     bool exit_enabled;     // Whether exit is enabled yet
     int keys_required;     // Number of keys needed to enable exit
     int keys_collected;    // Number of keys collected so far
+    int current_level;     // Current level (1 or 2)
+    bool level_complete;   // Flag to indicate level is complete and should advance
 } GameState;
 
 // Message structure for IPC
@@ -86,6 +89,7 @@ typedef struct {
 #define MSG_PLAYER_HIT 3
 #define MSG_GAME_OVER 4
 #define MSG_KEY_COLLECTED 5
+#define MSG_LEVEL_COMPLETE 6
 
 // Function declarations
 bool game_init(void);
@@ -100,5 +104,6 @@ void update_game_time(GameState *state);
 bool check_exit_criteria(GameState *state);
 void render_game_ui(SDL_Renderer *renderer, GameState *state);
 void render_digit(SDL_Renderer *renderer, int x, int y, int digit);
+void generate_level(GameState *state, int level);
 
 #endif /* GAME_H */ 

@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <SDL2/SDL.h>
 #include <pthread.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "../include/game.h"
 #include "../include/shared_memory.h"
@@ -421,8 +423,8 @@ void update_player(GameState* state, int player_id, int dx, int dy) {
                 
             case TILE_DOOR:
                 // Doors now give bonuses instead of requiring keys
-                // Random bonus: health, score, or extra key
-                int bonus_type = rand() % 3;
+                // Random bonus: health or score (removed key bonus)
+                int bonus_type = rand() % 2;
                 
                 switch (bonus_type) {
                     case 0: // Health bonus
@@ -434,21 +436,44 @@ void update_player(GameState* state, int player_id, int dx, int dy) {
                         player->score += 20;
                         printf("Door opened! Score bonus received!\n");
                         break;
-                    case 2: // Extra key
-                        player->keys++;
-                        printf("Door opened! Extra key received!\n");
-                        break;
                 }
                 
                 state->map.tiles[new_y][new_x] = TILE_EMPTY;
                 break;
                 
             case TILE_EXIT:
-                // Reached exit, end game if enabled
+                // Reached exit, check if we need to advance to the next level
                 if (state->exit_enabled) {
-                    state->game_over = true;
-                    state->winner_id = player_id;
-                    printf("Exit reached! Game won!\n");
+                    if (state->current_level < MAX_LEVEL) {
+                        // Advance to the next level
+                        state->current_level++;
+                        printf("Level %d completed! Advancing to level %d!\n", 
+                               state->current_level - 1, state->current_level);
+                        
+                        // Reset key collection for the new level
+                        state->keys_collected = 0;
+                        state->exit_enabled = false;
+                        
+                        // Restore player's health
+                        player->health = 100;
+                        player->keys = 0;
+                        
+                        // Generate the next level
+                        generate_level(state, state->current_level);
+                        
+                        // Reset player position to starting point
+                        player->x = 2;
+                        player->y = 2;
+                        
+                        // Don't allow immediate move
+                        unlock_game_state();
+                        return;
+                    } else {
+                        // Final level completed, end game
+                        state->game_over = true;
+                        state->winner_id = player_id;
+                        printf("Exit reached! Game won!\n");
+                    }
                 } else {
                     // Show message about needing keys
                     printf("Exit is locked! Collect all %d keys first. (%d/%d collected)\n", 
@@ -658,4 +683,218 @@ void render_digit(SDL_Renderer* renderer, int x, int y, int digit) {
             SDL_RenderFillRect(renderer, &segments[i]);
         }
     }
+}
+
+// Generate a level with difficulty based on level number
+void generate_level(GameState *state, int level) {
+    if (state == NULL) {
+        printf("Error: NULL state passed to generate_level\n");
+        return;
+    }
+    
+    printf("Generating level %d...\n", level);
+    
+    // Validate level number
+    if (level < 1 || level > MAX_LEVEL) {
+        printf("Error: Invalid level number %d (max: %d)\n", level, MAX_LEVEL);
+        return;
+    }
+    
+    // Reset the map
+    memset(state->map.tiles, 0, sizeof(state->map.tiles));
+    state->map.width = MAP_WIDTH;
+    state->map.height = MAP_HEIGHT;
+    
+    // Initialize map with walls around the edges
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            if (x == 0 || y == 0 || x == MAP_WIDTH-1 || y == MAP_HEIGHT-1) {
+                state->map.tiles[y][x] = TILE_WALL;
+            } else {
+                state->map.tiles[y][x] = TILE_EMPTY;
+            }
+        }
+    }
+    
+    // Create a more complex maze using a cellular automaton approach
+    // First, randomly place walls - denser for higher levels
+    int wall_chance = 30 + (level - 1) * 5; // 30% for level 1, 35% for level 2, etc.
+    wall_chance = wall_chance > 50 ? 50 : wall_chance; // Cap at 50%
+    
+    for (int y = 1; y < MAP_HEIGHT-1; y++) {
+        for (int x = 1; x < MAP_WIDTH-1; x++) {
+            // Keep starting area clear (top-left corner)
+            if (x < 5 && y < 5) continue;
+            
+            // Place walls based on level difficulty
+            if (rand() % 100 < wall_chance) {
+                state->map.tiles[y][x] = TILE_WALL;
+            }
+        }
+    }
+    
+    // Smooth the maze using a cellular automaton approach
+    for (int iteration = 0; iteration < 3; iteration++) {
+        // Create a temporary copy of the map
+        TileType temp_map[MAP_HEIGHT][MAP_WIDTH];
+        memcpy(temp_map, state->map.tiles, sizeof(temp_map));
+        
+        for (int y = 1; y < MAP_HEIGHT-1; y++) {
+            for (int x = 1; x < MAP_WIDTH-1; x++) {
+                // Count walls in 3x3 neighborhood
+                int wall_count = 0;
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (state->map.tiles[y+dy][x+dx] == TILE_WALL) {
+                            wall_count++;
+                        }
+                    }
+                }
+                
+                // Apply cellular automaton rules
+                if (wall_count >= 5) {
+                    temp_map[y][x] = TILE_WALL;
+                } else if (wall_count <= 2) {
+                    temp_map[y][x] = TILE_EMPTY;
+                }
+                // Otherwise, keep the current state
+            }
+        }
+        
+        // Update the map with the smoothed version
+        memcpy(state->map.tiles, temp_map, sizeof(temp_map));
+    }
+    
+    // Ensure the player's starting position is clear
+    for (int y = 1; y < 8; y++) {
+        for (int x = 1; x < 8; x++) {
+            state->map.tiles[y][x] = TILE_EMPTY;
+        }
+    }
+    
+    // Also create clear paths outward from the starting area in four directions
+    // Path to the right
+    for (int x = 8; x < 15; x++) {
+        state->map.tiles[4][x] = TILE_EMPTY;
+        state->map.tiles[5][x] = TILE_EMPTY;
+    }
+    
+    // Path downward
+    for (int y = 8; y < 15; y++) {
+        state->map.tiles[y][4] = TILE_EMPTY;
+        state->map.tiles[y][5] = TILE_EMPTY;
+    }
+    
+    // Place a door at the end of each starting path
+    state->map.tiles[4][14] = TILE_DOOR;
+    state->map.tiles[14][4] = TILE_DOOR;
+    
+    // Add doors to create sections
+    for (int i = 0; i < 15; i++) {
+        int x = 15 + rand() % (MAP_WIDTH - 25);
+        int y = 15 + rand() % (MAP_HEIGHT - 25);
+        state->map.tiles[y][x] = TILE_DOOR;
+    }
+    
+    // Set keys required based on level
+    state->keys_required = 5 + (level - 1) * 2; // 5 keys for level 1, 7 for level 2, etc.
+    state->keys_collected = 0;
+    state->exit_enabled = false;
+    
+    // Add keys - number based on level difficulty
+    for (int i = 0; i < state->keys_required; i++) {
+        int x, y;
+        do {
+            // Place keys farther from the starting point
+            x = 20 + rand() % (MAP_WIDTH - 25);
+            y = 20 + rand() % (MAP_HEIGHT - 25);
+        } while (state->map.tiles[y][x] != TILE_EMPTY);
+        
+        state->map.tiles[y][x] = TILE_KEY;
+        
+        // Create a path from this key to either the starting area or the map center
+        int path_x = x;
+        int path_y = y;
+        int target_x, target_y;
+        
+        // Alternate between creating paths to start and center to create connections
+        if (i % 2 == 0) {
+            // Path to starting area
+            target_x = 3;
+            target_y = 3;
+        } else {
+            // Path to center of map
+            target_x = MAP_WIDTH / 2;
+            target_y = MAP_HEIGHT / 2;
+        }
+        
+        // Create path from key to target
+        while ((abs(path_x - target_x) > 3) || (abs(path_y - target_y) > 3)) {
+            // Choose direction based on which axis has greater distance
+            if (abs(path_x - target_x) > abs(path_y - target_y)) {
+                // Move horizontally
+                path_x += (path_x < target_x) ? 1 : -1;
+            } else {
+                // Move vertically
+                path_y += (path_y < target_y) ? 1 : -1;
+            }
+            
+            // Clear current tile if it's a wall
+            if (state->map.tiles[path_y][path_x] == TILE_WALL) {
+                state->map.tiles[path_y][path_x] = TILE_EMPTY;
+            }
+            
+            // Occasionally place a door (10% chance)
+            if (rand() % 100 < 10 && state->map.tiles[path_y][path_x] == TILE_EMPTY) {
+                state->map.tiles[path_y][path_x] = TILE_DOOR;
+            }
+        }
+    }
+    
+    // Add treasures - more of them for higher levels
+    int num_treasures = MAP_WIDTH * MAP_HEIGHT / 50 + (level - 1) * 10;
+    for (int i = 0; i < num_treasures; i++) {
+        int x = rand() % (MAP_WIDTH - 2) + 1;
+        int y = rand() % (MAP_HEIGHT - 2) + 1;
+        if (state->map.tiles[y][x] == TILE_EMPTY) {
+            state->map.tiles[y][x] = TILE_TREASURE;
+        }
+    }
+    
+    // Add exit in the far corner
+    state->map.tiles[MAP_HEIGHT-2][MAP_WIDTH-2] = TILE_EMPTY; // Clear any walls near exit
+    state->map.tiles[MAP_HEIGHT-3][MAP_WIDTH-2] = TILE_EMPTY;
+    state->map.tiles[MAP_HEIGHT-2][MAP_WIDTH-3] = TILE_EMPTY;
+    state->map.tiles[MAP_HEIGHT-3][MAP_WIDTH-3] = TILE_EMPTY;
+    state->map.tiles[MAP_HEIGHT-2][MAP_WIDTH-2] = TILE_EXIT;
+    
+    // Create a path from exit toward the center of the map
+    int path_x = MAP_WIDTH - 2;
+    int path_y = MAP_HEIGHT - 2;
+    int target_x = MAP_WIDTH / 2;
+    int target_y = MAP_HEIGHT / 2;
+    
+    // Clear a path from exit toward center (using simple pathfinding)
+    while (path_x > target_x || path_y > target_y) {
+        // Move toward center, one step at a time
+        if (path_x > target_x) {
+            path_x--;
+            state->map.tiles[path_y][path_x] = TILE_EMPTY;
+        }
+        if (path_y > target_y) {
+            path_y--;
+            state->map.tiles[path_y][path_x] = TILE_EMPTY;
+        }
+        
+        // Also clear adjacent tiles to make the path wider and more visible
+        if (path_x + 1 < MAP_WIDTH) 
+            state->map.tiles[path_y][path_x + 1] = TILE_EMPTY;
+        if (path_y + 1 < MAP_HEIGHT) 
+            state->map.tiles[path_y + 1][path_x] = TILE_EMPTY;
+    }
+    
+    // Reset level complete flag
+    state->level_complete = false;
+    
+    printf("Level %d generated: %d keys required\n", level, state->keys_required);
 } 

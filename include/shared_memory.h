@@ -7,7 +7,7 @@
 #include "game.h"
 
 // Shared memory key - will be generated at runtime using ftok
-#define SHM_PATH "/tmp"
+#define SHM_PATH "/etc/passwd"  // Use a file that's guaranteed to exist
 #define SHM_ID 'D'
 
 // Semaphore name

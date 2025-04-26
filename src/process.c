@@ -45,8 +45,8 @@ void create_player_processes(int count) {
     for (int i = 0; i < count; i++) {
         lock_game_state();
         game_state->players[i].id = i;
-        game_state->players[i].x = 3;
-        game_state->players[i].y = 3;
+        game_state->players[i].x = 4;
+        game_state->players[i].y = 4;
         game_state->players[i].health = 100;
         game_state->players[i].score = 0;
         game_state->players[i].is_active = true;
@@ -90,28 +90,28 @@ void create_enemy_processes(int count) {
         // Place each enemy at a different location - very far from start
         switch (i) {
             case 0: // Chaser enemy - far corner
-                game_state->enemies[i].x = MAP_WIDTH - 10;
-                game_state->enemies[i].y = MAP_HEIGHT - 10;
+                game_state->enemies[i].x = MAP_WIDTH / 2 + 15;
+                game_state->enemies[i].y = MAP_HEIGHT / 2 + 15;
                 game_state->enemies[i].type = ENTITY_ENEMY_CHASE;
                 break;
             case 1: // Random movement enemy - top right
-                game_state->enemies[i].x = MAP_WIDTH - 8;
-                game_state->enemies[i].y = 8;
+                game_state->enemies[i].x = MAP_WIDTH / 2 + 15;
+                game_state->enemies[i].y = MAP_HEIGHT / 2 - 15;
                 game_state->enemies[i].type = ENTITY_ENEMY_RANDOM;
                 break;
             case 2: // Guard enemy - near exit
-                game_state->enemies[i].x = MAP_WIDTH - 4;
-                game_state->enemies[i].y = MAP_HEIGHT - 4;
+                game_state->enemies[i].x = MAP_WIDTH - 10;
+                game_state->enemies[i].y = MAP_HEIGHT - 10;
                 game_state->enemies[i].type = ENTITY_ENEMY_GUARD;
                 break;
             case 3: // Another chaser - positioned far right
-                game_state->enemies[i].x = MAP_WIDTH - 15;
+                game_state->enemies[i].x = MAP_WIDTH / 2 + 20;
                 game_state->enemies[i].y = MAP_HEIGHT / 2;
                 game_state->enemies[i].type = ENTITY_ENEMY_CHASE;
                 break;
             case 4: // Smart enemy - bottom left
-                game_state->enemies[i].x = 15;
-                game_state->enemies[i].y = MAP_HEIGHT - 15;
+                game_state->enemies[i].x = MAP_WIDTH / 2 - 15;
+                game_state->enemies[i].y = MAP_HEIGHT / 2 + 15;
                 game_state->enemies[i].type = ENTITY_ENEMY_SMART;
                 break;
         }
@@ -299,19 +299,19 @@ void enemy_process_main(int enemy_id, EntityType enemy_type) {
         
         switch (enemy_type) {
             case ENTITY_ENEMY_CHASE:
-                move_frequency = 5; // Much faster movement
+                move_frequency = 15; // Much slower
                 break;
             case ENTITY_ENEMY_RANDOM:
-                move_frequency = 10; // Faster than before
+                move_frequency = 20; // Slower
                 break;
             case ENTITY_ENEMY_GUARD:
-                move_frequency = 12; // Faster than before
+                move_frequency = 25; // Slower
                 break;
             case ENTITY_ENEMY_SMART:
-                move_frequency = 10; // Faster than before
+                move_frequency = 20; // Slower
                 break;
             default:
-                move_frequency = 10;
+                move_frequency = 20;
         }
         
         if (move_counter >= move_frequency) {
@@ -504,7 +504,7 @@ void enemy_process_main(int enemy_id, EntityType enemy_type) {
                             hit_message.message_type = MSG_PLAYER_HIT;
                             hit_message.x = new_x;
                             hit_message.y = new_y;
-                            hit_message.data = 10; // Damage amount
+                            hit_message.data = 5; // Reduced damage amount from 10 to 5
                             
                             unlock_game_state();
                             send_message_to_main(enemy_id, &hit_message);
@@ -542,17 +542,17 @@ void check_player_enemy_collision(GameState *state) {
     static bool initial_invulnerability = true;
     time_t game_time = state->current_time - state->start_time;
     
-    // Initial invulnerability for the first 20 seconds
-    if (game_time < 20 && initial_invulnerability) {
+    // Initial invulnerability for the first 60 seconds
+    if (game_time < 60 && initial_invulnerability) {
         // Clear the hit flag during invulnerability period
         state->player_hit = false;
         return;
-    } else if (game_time >= 20 && initial_invulnerability) {
+    } else if (game_time >= 60 && initial_invulnerability) {
         initial_invulnerability = false;
     }
     
-    // Also provide brief invulnerability after each hit (2 seconds)
-    if ((game_time - last_hit_time) < 2) {
+    // Also provide brief invulnerability after each hit (3 seconds)
+    if ((game_time - last_hit_time) < 3) {
         // Clear the hit flag during invulnerability period
         state->player_hit = false;
         return;
@@ -560,7 +560,7 @@ void check_player_enemy_collision(GameState *state) {
     
     if (state->player_hit) {
         // Player was hit - reduce health
-        state->players[0].health -= 10;
+        state->players[0].health -= 5; // Reduced damage from 10 to 5
         
         // Reset the hit flag
         state->player_hit = false;

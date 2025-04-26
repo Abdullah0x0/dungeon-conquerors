@@ -14,6 +14,7 @@ volatile sig_atomic_t terminate_flag = 0;
 
 // Signal handler
 void handle_signal(int sig) {
+    (void)sig; // Mark parameter as unused
     terminate_flag = 1;
 }
 
@@ -522,6 +523,10 @@ int main(int argc, char* argv[]) {
         window = NULL;
     }
     
+    // Make sure any pending signals are handled before cleanup
+    // to avoid interrupting cleanup process
+    usleep(100000); // 100ms pause
+    
     // Send game over message to all enemy processes again to ensure they terminate
     printf("Sending final termination signals to enemies...\n");
     for (int i = 0; i < num_enemy_processes; i++) {
@@ -533,20 +538,17 @@ int main(int argc, char* argv[]) {
     // Small delay to allow processes to terminate
     usleep(500000); // 500ms
     
+    // Now cleanup game resources before IPC and shared memory
+    printf("Cleaning up game resources...\n");
+    game_cleanup();
+    
     // Clean up IPC channels (this already terminates enemy processes)
     printf("Cleaning up IPC channels...\n");
     cleanup_ipc_channels();
     
     // Detach from shared memory - check first if still valid
     printf("Cleaning up shared memory...\n");
-    if (game_state != NULL && game_state != (void*)-1) {
-        cleanup_shared_memory();
-        game_state = NULL;
-    }
-    
-    // Now cleanup game resources
-    printf("Cleaning up game resources...\n");
-    game_cleanup();
+    cleanup_shared_memory();
     
     // Quit SDL last
     printf("Quitting SDL...\n");

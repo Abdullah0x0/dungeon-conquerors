@@ -48,8 +48,10 @@ bool init_shared_memory(void) {
     game_state->start_time = time(NULL);
     game_state->current_time = game_state->start_time;
     game_state->exit_enabled = false;
-    game_state->keys_required = 5;  // Player needs to collect 5 keys
+    game_state->keys_required = 5;  // Player needs to collect 5 keys on level 1
     game_state->keys_collected = 0;
+    game_state->current_level = 1;  // Start at level 1
+    game_state->level_complete = false;
     
     // Initialize map with walls around the edges
     for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -109,18 +111,28 @@ bool init_shared_memory(void) {
     }
     
     // Ensure the player's starting position is clear
-    for (int y = 1; y < 4; y++) {
-        for (int x = 1; x < 4; x++) {
+    for (int y = 1; y < 8; y++) {
+        for (int x = 1; x < 8; x++) {
             game_state->map.tiles[y][x] = TILE_EMPTY;
         }
     }
     
-    // Add doors to create sections
-    for (int i = 0; i < 15; i++) {
-        int x = 10 + rand() % (MAP_WIDTH - 20);
-        int y = 10 + rand() % (MAP_HEIGHT - 20);
-        game_state->map.tiles[y][x] = TILE_DOOR;
+    // Also create clear paths outward from the starting area in four directions
+    // Path to the right
+    for (int x = 8; x < 15; x++) {
+        game_state->map.tiles[4][x] = TILE_EMPTY;
+        game_state->map.tiles[5][x] = TILE_EMPTY;
     }
+    
+    // Path downward
+    for (int y = 8; y < 15; y++) {
+        game_state->map.tiles[y][4] = TILE_EMPTY;
+        game_state->map.tiles[y][5] = TILE_EMPTY;
+    }
+    
+    // Place a door at the end of each starting path
+    game_state->map.tiles[4][14] = TILE_DOOR;
+    game_state->map.tiles[14][4] = TILE_DOOR;
     
     // Add keys in different areas of the map (far from start)
     for (int i = 0; i < game_state->keys_required; i++) {
@@ -132,6 +144,44 @@ bool init_shared_memory(void) {
         } while (game_state->map.tiles[y][x] != TILE_EMPTY);
         
         game_state->map.tiles[y][x] = TILE_KEY;
+        
+        // Create a path from this key to either the starting area or the map center
+        int path_x = x;
+        int path_y = y;
+        int target_x, target_y;
+        
+        // Alternate between creating paths to start and center to create connections
+        if (i % 2 == 0) {
+            // Path to starting area
+            target_x = 3;
+            target_y = 3;
+        } else {
+            // Path to center of map
+            target_x = MAP_WIDTH / 2;
+            target_y = MAP_HEIGHT / 2;
+        }
+        
+        // Create path from key to target
+        while ((abs(path_x - target_x) > 3) || (abs(path_y - target_y) > 3)) {
+            // Choose direction based on which axis has greater distance
+            if (abs(path_x - target_x) > abs(path_y - target_y)) {
+                // Move horizontally
+                path_x += (path_x < target_x) ? 1 : -1;
+            } else {
+                // Move vertically
+                path_y += (path_y < target_y) ? 1 : -1;
+            }
+            
+            // Clear current tile if it's a wall
+            if (game_state->map.tiles[path_y][path_x] == TILE_WALL) {
+                game_state->map.tiles[path_y][path_x] = TILE_EMPTY;
+            }
+            
+            // Occasionally place a door (10% chance)
+            if (rand() % 100 < 10 && game_state->map.tiles[path_y][path_x] == TILE_EMPTY) {
+                game_state->map.tiles[path_y][path_x] = TILE_DOOR;
+            }
+        }
     }
     
     // Add treasures - more of them for higher scores
@@ -147,7 +197,33 @@ bool init_shared_memory(void) {
     game_state->map.tiles[MAP_HEIGHT-2][MAP_WIDTH-2] = TILE_EMPTY; // Clear any walls near exit
     game_state->map.tiles[MAP_HEIGHT-3][MAP_WIDTH-2] = TILE_EMPTY;
     game_state->map.tiles[MAP_HEIGHT-2][MAP_WIDTH-3] = TILE_EMPTY;
+    game_state->map.tiles[MAP_HEIGHT-3][MAP_WIDTH-3] = TILE_EMPTY;
     game_state->map.tiles[MAP_HEIGHT-2][MAP_WIDTH-2] = TILE_EXIT;
+    
+    // Create a path from exit toward the center of the map
+    int path_x = MAP_WIDTH - 2;
+    int path_y = MAP_HEIGHT - 2;
+    int target_x = MAP_WIDTH / 2;
+    int target_y = MAP_HEIGHT / 2;
+    
+    // Clear a path from exit toward center (using simple pathfinding)
+    while (path_x > target_x || path_y > target_y) {
+        // Move toward center, one step at a time
+        if (path_x > target_x) {
+            path_x--;
+            game_state->map.tiles[path_y][path_x] = TILE_EMPTY;
+        }
+        if (path_y > target_y) {
+            path_y--;
+            game_state->map.tiles[path_y][path_x] = TILE_EMPTY;
+        }
+        
+        // Also clear adjacent tiles to make the path wider and more visible
+        if (path_x + 1 < MAP_WIDTH) 
+            game_state->map.tiles[path_y][path_x + 1] = TILE_EMPTY;
+        if (path_y + 1 < MAP_HEIGHT) 
+            game_state->map.tiles[path_y + 1][path_x] = TILE_EMPTY;
+    }
     
     // Create POSIX semaphore for synchronization
     // First unlink any existing semaphore with the same name
