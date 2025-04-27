@@ -6,14 +6,14 @@
 #include <time.h>
 
 // Game constants
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
 #define TILE_SIZE 32
 #define MAX_PLAYERS 4
 #define MAX_ENEMIES 8
 #define MAP_WIDTH 80
 #define MAP_HEIGHT 80
-#define MIN_PLAY_TIME_SEC 300 // 5 minutes minimum play time
+#define MIN_PLAY_TIME_SEC 300
 #define MAX_LEVEL 2  // Maximum level in the game
 
 // Game tile types

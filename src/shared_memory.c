@@ -177,15 +177,15 @@ bool init_shared_memory(void) {
                 game_state->map.tiles[path_y][path_x] = TILE_EMPTY;
             }
             
-            // Occasionally place a door (10% chance)
-            if (rand() % 100 < 10 && game_state->map.tiles[path_y][path_x] == TILE_EMPTY) {
+            // Occasionally place a door (5% chance instead of 10%)
+            if (rand() % 100 < 5 && game_state->map.tiles[path_y][path_x] == TILE_EMPTY) {
                 game_state->map.tiles[path_y][path_x] = TILE_DOOR;
             }
         }
     }
     
-    // Add treasures - more of them for higher scores
-    for (int i = 0; i < MAP_WIDTH * MAP_HEIGHT / 50; i++) {
+    // Add treasures - reduced quantity for balance
+    for (int i = 0; i < MAP_WIDTH * MAP_HEIGHT / 100; i++) { // Reduced from /50 to /100
         int x = rand() % (MAP_WIDTH - 2) + 1;
         int y = rand() % (MAP_HEIGHT - 2) + 1;
         if (game_state->map.tiles[y][x] == TILE_EMPTY) {

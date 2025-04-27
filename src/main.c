@@ -9,8 +9,16 @@
 #include "../include/shared_memory.h"
 #include "../include/process.h"
 
+// Define M_PI if not defined (for pulse calculations)
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // Global flag for handling signals
 volatile sig_atomic_t terminate_flag = 0;
+
+// Global flag to track if game over message was printed
+static bool game_over_message_printed = false;
 
 // Signal handler
 void handle_signal(int sig) {
@@ -45,6 +53,14 @@ void draw_simple_char(SDL_Renderer* renderer, int x, int y, char c, int size) {
             SDL_RenderDrawLine(renderer, x, y + 2*size/3, x + size/3, y + size);
             SDL_RenderDrawLine(renderer, x + size/3, y + size, x + size, y + size);
             break;
+        case 'D':
+            SDL_RenderDrawLine(renderer, x, y, x, y + size);
+            SDL_RenderDrawLine(renderer, x, y, x + 2*size/3, y);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + size, y + size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + size/3, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x, y + size);
+            break;
         case 'E':
             SDL_RenderDrawLine(renderer, x, y, x, y + size);
             SDL_RenderDrawLine(renderer, x, y, x + size, y);
@@ -55,6 +71,21 @@ void draw_simple_char(SDL_Renderer* renderer, int x, int y, char c, int size) {
             SDL_RenderDrawLine(renderer, x, y, x, y + size);
             SDL_RenderDrawLine(renderer, x, y, x + size, y);
             SDL_RenderDrawLine(renderer, x, y + size/2, x + 2*size/3, y + size/2);
+            break;
+        case 'G':
+            SDL_RenderDrawLine(renderer, x + size, y, x + size/3, y);
+            SDL_RenderDrawLine(renderer, x + size/3, y, x, y + size/3);
+            SDL_RenderDrawLine(renderer, x, y + size/3, x, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x + size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + size, y + size/2);
+            SDL_RenderDrawLine(renderer, x + size, y + size/2, x + 2*size/3, y + size/2);
+            break;
+        case 'H':
+            SDL_RenderDrawLine(renderer, x, y, x, y + size);
+            SDL_RenderDrawLine(renderer, x + size, y, x + size, y + size);
+            SDL_RenderDrawLine(renderer, x, y + size/2, x + size, y + size/2);
             break;
         case 'I':
             SDL_RenderDrawLine(renderer, x, y, x + size, y);
@@ -69,6 +100,12 @@ void draw_simple_char(SDL_Renderer* renderer, int x, int y, char c, int size) {
         case 'L':
             SDL_RenderDrawLine(renderer, x, y, x, y + size);
             SDL_RenderDrawLine(renderer, x, y + size, x + size, y + size);
+            break;
+        case 'M':
+            SDL_RenderDrawLine(renderer, x, y, x, y + size);
+            SDL_RenderDrawLine(renderer, x, y, x + size/2, y + size/2);
+            SDL_RenderDrawLine(renderer, x + size/2, y + size/2, x + size, y);
+            SDL_RenderDrawLine(renderer, x + size, y, x + size, y + size);
             break;
         case 'N':
             SDL_RenderDrawLine(renderer, x, y, x, y + size);
@@ -92,6 +129,17 @@ void draw_simple_char(SDL_Renderer* renderer, int x, int y, char c, int size) {
             SDL_RenderDrawLine(renderer, x + size, y + size/4, x + 2*size/3, y + size/2);
             SDL_RenderDrawLine(renderer, x + 2*size/3, y + size/2, x, y + size/2);
             break;
+        case 'Q':
+            SDL_RenderDrawLine(renderer, x + size/3, y, x + 2*size/3, y);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + size, y + size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + size/3, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x, y + size/3);
+            SDL_RenderDrawLine(renderer, x, y + size/3, x + size/3, y);
+            SDL_RenderDrawLine(renderer, x + size/2, y + 2*size/3, x + size, y + size);
+            break;
         case 'R':
             SDL_RenderDrawLine(renderer, x, y, x, y + size);
             SDL_RenderDrawLine(renderer, x, y, x + 2*size/3, y);
@@ -113,6 +161,17 @@ void draw_simple_char(SDL_Renderer* renderer, int x, int y, char c, int size) {
             SDL_RenderDrawLine(renderer, x, y, x + size, y);
             SDL_RenderDrawLine(renderer, x + size/2, y, x + size/2, y + size);
             break;
+        case 'U':
+            SDL_RenderDrawLine(renderer, x, y, x, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x + size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + size, y);
+            break;
+        case 'V':
+            SDL_RenderDrawLine(renderer, x, y, x + size/2, y + size);
+            SDL_RenderDrawLine(renderer, x + size/2, y + size, x + size, y);
+            break;
         case 'W':
             SDL_RenderDrawLine(renderer, x, y, x + size/4, y + size);
             SDL_RenderDrawLine(renderer, x + size/4, y + size, x + size/2, y + size/2);
@@ -131,8 +190,50 @@ void draw_simple_char(SDL_Renderer* renderer, int x, int y, char c, int size) {
         case '.':
             SDL_RenderDrawLine(renderer, x + size/2, y + 4*size/5, x + size/2, y + size);
             break;
+        case ':':
+            SDL_RenderDrawLine(renderer, x + size/2, y + size/4, x + size/2, y + size/3);
+            SDL_RenderDrawLine(renderer, x + size/2, y + 2*size/3, x + size/2, y + 3*size/4);
+            break;
         case ' ':
             // Nothing for space
+            break;
+        case '0':
+            SDL_RenderDrawLine(renderer, x + size/3, y, x + 2*size/3, y);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + size, y + size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + size/3, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x, y + size/3);
+            SDL_RenderDrawLine(renderer, x, y + size/3, x + size/3, y);
+            break;
+        case '1':
+            SDL_RenderDrawLine(renderer, x + size/3, y, x + size/2, y);
+            SDL_RenderDrawLine(renderer, x + size/2, y, x + size/2, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x + 2*size/3, y + size);
+            break;
+        case '2':
+            SDL_RenderDrawLine(renderer, x + size/4, y, x + 3*size/4, y);
+            SDL_RenderDrawLine(renderer, x + 3*size/4, y, x + size, y + size/4);
+            SDL_RenderDrawLine(renderer, x + size, y + size/4, x + 3*size/4, y + size/2);
+            SDL_RenderDrawLine(renderer, x + 3*size/4, y + size/2, x + size/4, y + size/2);
+            SDL_RenderDrawLine(renderer, x + size/4, y + size/2, x, y + 3*size/4);
+            SDL_RenderDrawLine(renderer, x, y + 3*size/4, x, y + size);
+            SDL_RenderDrawLine(renderer, x, y + size, x + size, y + size);
+            break;
+        case '3':
+            SDL_RenderDrawLine(renderer, x, y, x + 2*size/3, y);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + size, y + size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + size/3, x + 2*size/3, y + size/2);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size/2, x + size/2, y + size/2);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size/2, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x, y + size);
+            break;
+        case '4':
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x + size, y + 2*size/3);
             break;
         case '5':
             SDL_RenderDrawLine(renderer, x, y, x + size, y);
@@ -141,6 +242,44 @@ void draw_simple_char(SDL_Renderer* renderer, int x, int y, char c, int size) {
             SDL_RenderDrawLine(renderer, x + 2*size/3, y + size/2, x + size, y + 3*size/4);
             SDL_RenderDrawLine(renderer, x + size, y + 3*size/4, x + 2*size/3, y + size);
             SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size/3, y + size);
+            break;
+        case '6':
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + size/3, y);
+            SDL_RenderDrawLine(renderer, x + size/3, y, x, y + size/3);
+            SDL_RenderDrawLine(renderer, x, y + size/3, x, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x + size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + size/2, y + size/2);
+            SDL_RenderDrawLine(renderer, x + size/2, y + size/2, x, y + size/2);
+            break;
+        case '7':
+            SDL_RenderDrawLine(renderer, x, y, x + size, y);
+            SDL_RenderDrawLine(renderer, x + size, y, x + size/3, y + size);
+            break;
+        case '8':
+            SDL_RenderDrawLine(renderer, x + size/3, y, x + 2*size/3, y);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + size, y + size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + size/3, x + 2*size/3, y + size/2);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size/2, x + size/3, y + size/2);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size/2, x, y + size/3);
+            SDL_RenderDrawLine(renderer, x, y + size/3, x + size/3, y);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size/2, x, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x + size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + 2*size/3, y + size/2);
+            break;
+        case '9':
+            SDL_RenderDrawLine(renderer, x, y + 2*size/3, x + size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + size/3, y + size, x + 2*size/3, y + size);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y + size, x + size, y + 2*size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + 2*size/3, x + size, y + size/3);
+            SDL_RenderDrawLine(renderer, x + size, y + size/3, x + 2*size/3, y);
+            SDL_RenderDrawLine(renderer, x + 2*size/3, y, x + size/3, y);
+            SDL_RenderDrawLine(renderer, x + size/3, y, x, y + size/3);
+            SDL_RenderDrawLine(renderer, x, y + size/3, x + size/2, y + size/2);
+            SDL_RenderDrawLine(renderer, x + size/2, y + size/2, x + size, y + size/2);
             break;
         default:
             // Default unknown character
@@ -228,7 +367,7 @@ int main(int argc, char* argv[]) {
     putenv("DISPLAY=:0");
     
     window = SDL_CreateWindow(
-        "Dungeon Conquerors - Single Player with Enemies",
+        "Dungeon Conquerors",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH, WINDOW_HEIGHT,
@@ -307,15 +446,17 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        // Check for messages from enemy processes
-        for (int i = 0; i < game_state->num_enemies; i++) {
-            if (receive_message_from_enemy(i, &message)) {
-                if (message.message_type == MSG_PLAYER_HIT && !showing_welcome) {
-                    printf("Player hit by enemy %d!\n", i);
-                    lock_game_state();
-                    game_state->player_hit = true;
-                    check_player_enemy_collision(game_state);
-                    unlock_game_state();
+        // Check for messages from enemy processes - only if not showing welcome screen
+        if (!showing_welcome) {
+            for (int i = 0; i < game_state->num_enemies; i++) {
+                if (receive_message_from_enemy(i, &message)) {
+                    if (message.message_type == MSG_PLAYER_HIT) {
+                        printf("Player hit by enemy %d!\n", i);
+                        lock_game_state();
+                        game_state->player_hit = true;
+                        check_player_enemy_collision(game_state);
+                        unlock_game_state();
+                    }
                 }
             }
         }
@@ -327,25 +468,119 @@ int main(int argc, char* argv[]) {
         lock_game_state();
         
         if (showing_welcome) {
-            // Draw welcome message instead of game
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            // Draw welcome message with modern styling
+            SDL_SetRenderDrawColor(renderer, 20, 20, 30, 255);
             SDL_RenderClear(renderer);
             
-            // Draw semi-transparent background for message
-            SDL_SetRenderDrawColor(renderer, 0, 0, 100, 200);
-            SDL_Rect msg_bg = {WINDOW_WIDTH / 6, WINDOW_HEIGHT / 3, WINDOW_WIDTH * 2 / 3, WINDOW_HEIGHT / 3};
+            // Create pulsing animation for welcome screen
+            float pulse = (sinf(welcome_timer * 0.05f) * 0.2f + 0.8f);
+            
+            // Draw stylish background gradient
+            for (int y = 0; y < WINDOW_HEIGHT; y++) {
+                float progress = (float)y / WINDOW_HEIGHT;
+                SDL_SetRenderDrawColor(renderer, 
+                                      (Uint8)(20 + 10 * progress), 
+                                      (Uint8)(20 + 15 * progress), 
+                                      (Uint8)(40 + 20 * progress), 
+                                      255);
+                SDL_RenderDrawLine(renderer, 0, y, WINDOW_WIDTH, y);
+            }
+            
+            // Draw decorative elements (stars)
+            for (int i = 0; i < 50; i++) {
+                int x = (welcome_timer + i * 50) % WINDOW_WIDTH;
+                int y = (i * 73) % WINDOW_HEIGHT;
+                int size = (i % 3) + 1;
+                float star_pulse = (sinf(welcome_timer * 0.1f + i * 0.2f) * 0.5f + 0.5f);
+                
+                SDL_SetRenderDrawColor(renderer, 
+                                      (Uint8)(150 * star_pulse), 
+                                      (Uint8)(150 * star_pulse), 
+                                      (Uint8)(255 * star_pulse), 
+                                      (Uint8)(150 * star_pulse));
+                SDL_Rect star = {x, y, size, size};
+                SDL_RenderFillRect(renderer, &star);
+            }
+            
+            // Draw semi-transparent background panel for message
+            SDL_SetRenderDrawColor(renderer, 20, 20, 60, 200);
+            SDL_Rect msg_bg = {
+                WINDOW_WIDTH / 6, 
+                WINDOW_HEIGHT / 3, 
+                WINDOW_WIDTH * 2 / 3, 
+                WINDOW_HEIGHT / 3
+            };
             SDL_RenderFillRect(renderer, &msg_bg);
             
-            // Draw message border
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_Rect border = {msg_bg.x - 2, msg_bg.y - 2, msg_bg.w + 4, msg_bg.h + 4};
-            SDL_RenderDrawRect(renderer, &border);
+            // Draw panel border with glow
+            SDL_SetRenderDrawColor(renderer, 
+                                  (Uint8)(100 * pulse), 
+                                  (Uint8)(150 * pulse), 
+                                  (Uint8)(255 * pulse), 
+                                  255);
+            for (int i = 0; i < 3; i++) {
+                SDL_Rect border = {
+                    msg_bg.x - i, 
+                    msg_bg.y - i, 
+                    msg_bg.w + i*2, 
+                    msg_bg.h + i*2
+                };
+                SDL_RenderDrawRect(renderer, &border);
+            }
             
-            // Draw welcome messages using our simple text drawing
-            draw_simple_text(renderer, WINDOW_WIDTH/6 + 20, WINDOW_HEIGHT/3 + 20, "COLLECT 5 KEYS", 15);
-            draw_simple_text(renderer, WINDOW_WIDTH/6 + 20, WINDOW_HEIGHT/3 + 50, "TO OPEN THE EXIT", 15);
-            draw_simple_text(renderer, WINDOW_WIDTH/6 + 20, WINDOW_HEIGHT/3 + 80, "BEWARE OF ENEMIES!", 15);
-            draw_simple_text(renderer, WINDOW_WIDTH/6 + 80, WINDOW_HEIGHT/3 + 120, "PRESS ANY KEY", 10);
+            // Draw title with larger size
+            draw_simple_text(renderer, WINDOW_WIDTH/2 - 120, WINDOW_HEIGHT/3 - 30, "DUNGEON CONQUERORS", 15);
+            
+            // Draw welcome messages with glowing effect
+            SDL_SetRenderDrawColor(renderer, 
+                                  (Uint8)(200 * pulse), 
+                                  (Uint8)(220 * pulse), 
+                                  (Uint8)(255 * pulse), 
+                                  255);
+            
+            // Display correct number of keys based on level
+            char keys_text[32];
+            sprintf(keys_text, "COLLECT KEYS");
+            draw_simple_text(renderer, WINDOW_WIDTH/6 + 30, WINDOW_HEIGHT/3 + 30, keys_text, 15);
+            draw_simple_text(renderer, WINDOW_WIDTH/6 + 30, WINDOW_HEIGHT/3 + 60, "TO OPEN THE EXIT", 15);
+            
+            // Warning message with red color
+            SDL_SetRenderDrawColor(renderer, 
+                                  (Uint8)(255 * pulse), 
+                                  (Uint8)(100 * pulse), 
+                                  (Uint8)(100 * pulse), 
+                                  255);
+            draw_simple_text(renderer, WINDOW_WIDTH/6 + 30, WINDOW_HEIGHT/3 + 90, "BEWARE OF ENEMIES!", 15);
+            
+            // Flashing "Press any key" prompt
+            if (welcome_timer % 40 < 30) {
+                SDL_SetRenderDrawColor(renderer, 255, 255, 100, 255);
+                draw_simple_text(renderer, WINDOW_WIDTH/6 + 90, WINDOW_HEIGHT/3 + 130, "PRESS ANY KEY", 12);
+            }
+            
+            // Draw decorative animated corner symbols
+            int corner_size = 20;
+            SDL_SetRenderDrawColor(renderer, 
+                                  (Uint8)(150 * pulse), 
+                                  (Uint8)(200 * pulse), 
+                                  (Uint8)(255 * pulse), 
+                                  255);
+            
+            // Top-left corner
+            SDL_RenderDrawLine(renderer, msg_bg.x, msg_bg.y, msg_bg.x + corner_size, msg_bg.y);
+            SDL_RenderDrawLine(renderer, msg_bg.x, msg_bg.y, msg_bg.x, msg_bg.y + corner_size);
+            
+            // Top-right corner
+            SDL_RenderDrawLine(renderer, msg_bg.x + msg_bg.w, msg_bg.y, msg_bg.x + msg_bg.w - corner_size, msg_bg.y);
+            SDL_RenderDrawLine(renderer, msg_bg.x + msg_bg.w, msg_bg.y, msg_bg.x + msg_bg.w, msg_bg.y + corner_size);
+            
+            // Bottom-left corner
+            SDL_RenderDrawLine(renderer, msg_bg.x, msg_bg.y + msg_bg.h, msg_bg.x + corner_size, msg_bg.y + msg_bg.h);
+            SDL_RenderDrawLine(renderer, msg_bg.x, msg_bg.y + msg_bg.h, msg_bg.x, msg_bg.y + msg_bg.h - corner_size);
+            
+            // Bottom-right corner
+            SDL_RenderDrawLine(renderer, msg_bg.x + msg_bg.w, msg_bg.y + msg_bg.h, msg_bg.x + msg_bg.w - corner_size, msg_bg.y + msg_bg.h);
+            SDL_RenderDrawLine(renderer, msg_bg.x + msg_bg.w, msg_bg.y + msg_bg.h, msg_bg.x + msg_bg.w, msg_bg.y + msg_bg.h - corner_size);
             
             // Increment timer and check if welcome should end
             welcome_timer++;
@@ -359,100 +594,257 @@ int main(int argc, char* argv[]) {
         
         // Check if game is over
         if (game_state->game_over) {
-            printf("Game over condition reached\n");
-            
-            // Display victory or defeat message
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
-            SDL_Rect msg_bg = {WINDOW_WIDTH / 4, WINDOW_HEIGHT / 2 - 50, WINDOW_WIDTH / 2, 100};
-            SDL_RenderFillRect(renderer, &msg_bg);
-            
-            // Instead of text, draw colored shapes to indicate victory/defeat
-            if (game_state->winner_id == 0) {
-                // Victory - Draw a green checkmark
-                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-                
-                // Draw V shape for victory
-                int center_x = WINDOW_WIDTH / 2;
-                int center_y = WINDOW_HEIGHT / 2;
-                int size = 30;
-                
-                // Left line of V
-                SDL_RenderDrawLine(renderer, 
-                    center_x - size, center_y - size,
-                    center_x, center_y + size);
-                
-                // Right line of V
-                SDL_RenderDrawLine(renderer, 
-                    center_x, center_y + size,
-                    center_x + size, center_y - size);
-                
-                // Make lines thicker
-                for (int i = -2; i <= 2; i++) {
-                    SDL_RenderDrawLine(renderer, 
-                        center_x - size + i, center_y - size,
-                        center_x + i, center_y + size);
-                    
-                    SDL_RenderDrawLine(renderer, 
-                        center_x + i, center_y + size,
-                        center_x + size + i, center_y - size);
-                }
-                
-                // Console message
-                printf("\n*******************************\n");
-                printf("*   VICTORY! You escaped the dungeon!   *\n");
-                printf("*   Final Score: %d   *\n", game_state->players[0].score);
-                printf("*******************************\n\n");
-            } else {
-                // Defeat - Draw a red X
-                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-                
-                int center_x = WINDOW_WIDTH / 2;
-                int center_y = WINDOW_HEIGHT / 2;
-                int size = 30;
-                
-                // Draw X shape for defeat
-                SDL_RenderDrawLine(renderer, 
-                    center_x - size, center_y - size,
-                    center_x + size, center_y + size);
-                
-                SDL_RenderDrawLine(renderer, 
-                    center_x + size, center_y - size,
-                    center_x - size, center_y + size);
-                
-                // Make lines thicker
-                for (int i = -2; i <= 2; i++) {
-                    SDL_RenderDrawLine(renderer, 
-                        center_x - size + i, center_y - size,
-                        center_x + size + i, center_y + size);
-                    
-                    SDL_RenderDrawLine(renderer, 
-                        center_x + size + i, center_y - size,
-                        center_x - size + i, center_y + size);
-                }
-                
-                // Console message
-                printf("\n*******************************\n");
-                printf("*   DEFEAT! You were killed by enemies!   *\n");
-                printf("*   Final Score: %d   *\n", game_state->players[0].score);
-                printf("*******************************\n\n");
+            // Only print game over message once
+            if (!game_over_message_printed) {
+                printf("Game over condition reached\n");
+                game_over_message_printed = true;
             }
             
-            SDL_RenderPresent(renderer);
-            SDL_Delay(3000); // Show message for 3 seconds
+            // Calculate pulsing effect for game over screen
+            float pulse_time = (float)(SDL_GetTicks() % 2000) / 2000.0f;
+            float pulse = (sinf(pulse_time * 2.0f * M_PI) * 0.2f + 0.8f);
             
-            running = false;
+            // Add a slight darkening overlay for game over
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
+            SDL_Rect overlay = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
+            SDL_RenderFillRect(renderer, &overlay);
+            
+            // Display victory or defeat message with modern styling
+            SDL_SetRenderDrawColor(renderer, 30, 30, 40, 230);
+            SDL_Rect msg_bg = {
+                WINDOW_WIDTH / 4, 
+                WINDOW_HEIGHT / 2 - 70, 
+                WINDOW_WIDTH / 2, 
+                140
+            };
+            SDL_RenderFillRect(renderer, &msg_bg);
+            
+            // Draw multiple borders for a glowing effect
+            if (game_state->winner_id == -2) {
+                // Game Exited - blue glow
+                for (int i = 0; i < 3; i++) {
+                    SDL_SetRenderDrawColor(renderer, 
+                                          (Uint8)(30 * pulse), 
+                                          (Uint8)(100 * pulse), 
+                                          (Uint8)(180 * pulse), 
+                                          (Uint8)(255 - i * 40));
+                    SDL_Rect border = {
+                        msg_bg.x - i, 
+                        msg_bg.y - i, 
+                        msg_bg.w + i*2, 
+                        msg_bg.h + i*2
+                    };
+                    SDL_RenderDrawRect(renderer, &border);
+                }
+                
+                // Draw Game Exited message
+                SDL_SetRenderDrawColor(renderer, 
+                                      (Uint8)(100 * pulse), 
+                                      (Uint8)(180 * pulse), 
+                                      (Uint8)(255 * pulse), 
+                                      255);
+                draw_simple_text(renderer, WINDOW_WIDTH/2 - 90, WINDOW_HEIGHT/2 - 40, "GAME EXITED", 20);
+                
+                // Draw score
+                char score_text[32];
+                sprintf(score_text, "SCORE: %d", game_state->players[0].score);
+                draw_simple_text(renderer, WINDOW_WIDTH/2 - 70, WINDOW_HEIGHT/2, score_text, 15);
+                
+                // Console message - print only once
+                if (!game_over_message_printed) {
+                    printf("\n*******************************\n");
+                    printf("*   Game exited by player   *\n");
+                    printf("*   Final Score: %d   *\n", game_state->players[0].score);
+                    printf("*******************************\n\n");
+                    game_over_message_printed = true;
+                }
+            }
+            else if (game_state->winner_id == 0) {
+                // Victory - green glow
+                for (int i = 0; i < 3; i++) {
+                    SDL_SetRenderDrawColor(renderer, 
+                                          (Uint8)(0 * pulse), 
+                                          (Uint8)(150 * pulse), 
+                                          (Uint8)(50 * pulse), 
+                                          (Uint8)(255 - i * 40));
+                    SDL_Rect border = {
+                        msg_bg.x - i, 
+                        msg_bg.y - i, 
+                        msg_bg.w + i*2, 
+                        msg_bg.h + i*2
+                    };
+                    SDL_RenderDrawRect(renderer, &border);
+                }
+                
+                // Draw victory message
+                SDL_SetRenderDrawColor(renderer, 
+                                      (Uint8)(100 * pulse), 
+                                      (Uint8)(255 * pulse), 
+                                      (Uint8)(100 * pulse), 
+                                      255);
+                draw_simple_text(renderer, WINDOW_WIDTH/2 - 80, WINDOW_HEIGHT/2 - 40, "VICTORY!", 20);
+                
+                // Draw score
+                char score_text[32];
+                sprintf(score_text, "SCORE: %d", game_state->players[0].score);
+                draw_simple_text(renderer, WINDOW_WIDTH/2 - 70, WINDOW_HEIGHT/2, score_text, 15);
+                
+                // Draw checkmark symbol - moved down to avoid overlapping with text
+                int center_x = WINDOW_WIDTH / 2;
+                int center_y = WINDOW_HEIGHT / 2 + 45; // Moved down from +30 to +45
+                int size = 30;
+                
+                // Left line of checkmark
+                SDL_RenderDrawLine(renderer, 
+                    center_x - size/2, center_y,
+                    center_x - size/6, center_y + size/2);
+                
+                // Right line of checkmark
+                SDL_RenderDrawLine(renderer, 
+                    center_x - size/6, center_y + size/2,
+                    center_x + size/2, center_y - size/2);
+                
+                // Make lines thicker
+                for (int i = -2; i <= 2; i++) {
+                    SDL_RenderDrawLine(renderer, 
+                        center_x - size/2 + i, center_y,
+                        center_x - size/6 + i, center_y + size/2);
+                    
+                    SDL_RenderDrawLine(renderer, 
+                        center_x - size/6 + i, center_y + size/2,
+                        center_x + size/2 + i, center_y - size/2);
+                }
+                
+                // Console message - print only once
+                if (!game_over_message_printed) {
+                    printf("\n*******************************\n");
+                    printf("*   VICTORY! You escaped the dungeon!   *\n");
+                    printf("*   Final Score: %d   *\n", game_state->players[0].score);
+                    printf("*******************************\n\n");
+                    game_over_message_printed = true;
+                }
+            } else {
+                // Defeat - red glow
+                for (int i = 0; i < 3; i++) {
+                    SDL_SetRenderDrawColor(renderer, 
+                                          (Uint8)(180 * pulse), 
+                                          (Uint8)(30 * pulse), 
+                                          (Uint8)(30 * pulse), 
+                                          (Uint8)(255 - i * 40));
+                    SDL_Rect border = {
+                        msg_bg.x - i, 
+                        msg_bg.y - i, 
+                        msg_bg.w + i*2, 
+                        msg_bg.h + i*2
+                    };
+                    SDL_RenderDrawRect(renderer, &border);
+                }
+                
+                // Draw defeat message
+                SDL_SetRenderDrawColor(renderer, 
+                                      (Uint8)(255 * pulse), 
+                                      (Uint8)(100 * pulse), 
+                                      (Uint8)(100 * pulse), 
+                                      255);
+                draw_simple_text(renderer, WINDOW_WIDTH/2 - 70, WINDOW_HEIGHT/2 - 40, "DEFEAT!", 20);
+                
+                // Draw X symbol - positioned to match the checkmark in victory screen
+                int center_x = WINDOW_WIDTH / 2;
+                int center_y = WINDOW_HEIGHT / 2 + 15; // Moved higher to be closer to the "DEFEAT!" text
+                int size = 30;
+                
+                // X lines
+                SDL_RenderDrawLine(renderer, 
+                    center_x - size/2, center_y - size/2,
+                    center_x + size/2, center_y + size/2);
+                
+                SDL_RenderDrawLine(renderer, 
+                    center_x - size/2, center_y + size/2,
+                    center_x + size/2, center_y - size/2);
+                
+                // Make lines thicker
+                for (int i = -2; i <= 2; i++) {
+                    SDL_RenderDrawLine(renderer, 
+                        center_x - size/2 + i, center_y - size/2,
+                        center_x + size/2 + i, center_y + size/2);
+                    
+                    SDL_RenderDrawLine(renderer, 
+                        center_x - size/2 + i, center_y + size/2,
+                        center_x + size/2 + i, center_y - size/2);
+                }
+                
+                // Console message - print only once
+                if (!game_over_message_printed) {
+                    printf("\n*******************************\n");
+                    printf("*   DEFEAT! The dungeon has claimed another victim!   *\n");
+                    printf("*******************************\n\n");
+                    game_over_message_printed = true;
+                }
+            }
+            
+            // Press any key to exit message
+            if (SDL_GetTicks() % 1000 < 500) {
+                SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+                draw_simple_text(renderer, WINDOW_WIDTH/2 - 100, WINDOW_HEIGHT/2 + 50, "PRESS ANY KEY TO EXIT", 10);
+            }
+            
+            // Present the game over screen
+            SDL_RenderPresent(renderer);
+            
+            // Wait for key press or timeout to exit
+            static bool exit_wait_started = false;
+            static Uint32 exit_start_time = 0;
+            static const Uint32 EXIT_TIMEOUT = 5000; // 5 seconds timeout
+            
+            if (!exit_wait_started) {
+                exit_start_time = SDL_GetTicks();
+                exit_wait_started = true;
+            }
+            
+            // Check for any key press to exit
+            SDL_Event exit_event;
+            while (SDL_PollEvent(&exit_event)) {
+                if (exit_event.type == SDL_KEYDOWN || exit_event.type == SDL_QUIT) {
+                    running = false;
+                    break;
+                }
+            }
+            
+            // Check for timeout
+            if (SDL_GetTicks() - exit_start_time > EXIT_TIMEOUT) {
+                running = false;
+            }
+            
+            // Skip the rest of the loop
+            unlock_game_state();
+            continue;
         }
         
         unlock_game_state();
         
         SDL_RenderPresent(renderer);
-        SDL_Delay(16); // ~60 FPS
+        
+        // Cap frame rate to approximately 60 FPS
+        SDL_Delay(16);
         
         // Check if termination was requested
         if (terminate_flag) {
             printf("Termination signal received\n");
             running = false;
             break;
+        }
+        
+        // Update welcome timer if showing welcome screen
+        if (showing_welcome) {
+            welcome_timer++;
+            if (welcome_timer >= WELCOME_DURATION) {
+                showing_welcome = false;
+                // Resume normal game time tracking
+                lock_game_state();
+                time_t paused_duration = game_state->current_time - welcome_start_time;
+                game_state->start_time += paused_duration; // Adjust start time to account for pause
+                unlock_game_state();
+            }
         }
     }
     
@@ -538,19 +930,20 @@ int main(int argc, char* argv[]) {
     // Small delay to allow processes to terminate
     usleep(500000); // 500ms
     
-    // Now cleanup game resources before IPC and shared memory
+    // Clean up in the correct order to prevent segmentation faults
+    // First clean up game resources
     printf("Cleaning up game resources...\n");
     game_cleanup();
     
-    // Clean up IPC channels (this already terminates enemy processes)
+    // Then clean up IPC channels 
     printf("Cleaning up IPC channels...\n");
     cleanup_ipc_channels();
     
-    // Detach from shared memory - check first if still valid
+    // Finally clean up shared memory - this must be done last
     printf("Cleaning up shared memory...\n");
     cleanup_shared_memory();
     
-    // Quit SDL last
+    // Quit SDL after everything else is cleaned up
     printf("Quitting SDL...\n");
     SDL_Quit();
     

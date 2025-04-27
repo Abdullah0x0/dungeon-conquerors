@@ -39,7 +39,7 @@ Dungeon Conquerors is a challenging top-down dungeon exploration game where the 
 
 ### Core Gameplay Loop
 1. Explore the procedurally generated dungeon
-2. Collect the 5 keys hidden throughout the maze
+2. Collect the keys hidden throughout the maze
 3. Find and open doors for bonuses (health, score, extra keys)
 4. Avoid or outmaneuver various enemy types
 5. Reach the exit once all keys are collected

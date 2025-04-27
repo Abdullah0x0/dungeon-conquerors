@@ -87,33 +87,76 @@ void create_enemy_processes(int count) {
         // Position enemies in different parts of the map far from player
         game_state->enemies[i].id = i;
         
-        // Place each enemy at a different location - very far from start
-        switch (i) {
-            case 0: // Chaser enemy - far corner
-                game_state->enemies[i].x = MAP_WIDTH / 2 + 15;
-                game_state->enemies[i].y = MAP_HEIGHT / 2 + 15;
-                game_state->enemies[i].type = ENTITY_ENEMY_CHASE;
-                break;
-            case 1: // Random movement enemy - top right
-                game_state->enemies[i].x = MAP_WIDTH / 2 + 15;
-                game_state->enemies[i].y = MAP_HEIGHT / 2 - 15;
-                game_state->enemies[i].type = ENTITY_ENEMY_RANDOM;
-                break;
-            case 2: // Guard enemy - near exit
-                game_state->enemies[i].x = MAP_WIDTH - 10;
-                game_state->enemies[i].y = MAP_HEIGHT - 10;
-                game_state->enemies[i].type = ENTITY_ENEMY_GUARD;
-                break;
-            case 3: // Another chaser - positioned far right
-                game_state->enemies[i].x = MAP_WIDTH / 2 + 20;
-                game_state->enemies[i].y = MAP_HEIGHT / 2;
-                game_state->enemies[i].type = ENTITY_ENEMY_CHASE;
-                break;
-            case 4: // Smart enemy - bottom left
-                game_state->enemies[i].x = MAP_WIDTH / 2 - 15;
-                game_state->enemies[i].y = MAP_HEIGHT / 2 + 15;
-                game_state->enemies[i].type = ENTITY_ENEMY_SMART;
-                break;
+        // Define valid spawn locations based on corner regions, far from player's start position (2,2)
+        struct {
+            int min_x, max_x;
+            int min_y, max_y;
+        } spawnRegions[4] = {
+            {MAP_WIDTH - 20, MAP_WIDTH - 5, 5, 15},                  // Top right
+            {MAP_WIDTH - 20, MAP_WIDTH - 5, MAP_HEIGHT - 15, MAP_HEIGHT - 5}, // Bottom right
+            {5, 15, MAP_HEIGHT - 15, MAP_HEIGHT - 5},                // Bottom left
+            {MAP_WIDTH/2 + 20, MAP_WIDTH - 5, MAP_HEIGHT/2 - 5, MAP_HEIGHT/2 + 5}  // Middle right
+        };
+        
+        // Select a spawn region for this enemy
+        int regionIndex = i % 4;
+        
+        // Find a valid empty tile within the region
+        int x = 0, y = 0;
+        bool valid_position = false;
+        int attempts = 0;
+        const int MAX_ATTEMPTS = 50;
+        
+        while (!valid_position && attempts < MAX_ATTEMPTS) {
+            x = spawnRegions[regionIndex].min_x + 
+                rand() % (spawnRegions[regionIndex].max_x - spawnRegions[regionIndex].min_x);
+            y = spawnRegions[regionIndex].min_y + 
+                rand() % (spawnRegions[regionIndex].max_y - spawnRegions[regionIndex].min_y);
+            
+            // Check if the position is an empty tile
+            if (game_state->map.tiles[y][x] == TILE_EMPTY) {
+                // Clear any walls in adjacent tiles to ensure enemies can move
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        int nx = x + dx;
+                        int ny = y + dy;
+                        if (nx > 0 && nx < MAP_WIDTH-1 && ny > 0 && ny < MAP_HEIGHT-1) {
+                            if (game_state->map.tiles[ny][nx] == TILE_WALL) {
+                                game_state->map.tiles[ny][nx] = TILE_EMPTY;
+                            }
+                        }
+                    }
+                }
+                valid_position = true;
+            }
+            attempts++;
+        }
+        
+        // If no valid position found, use fallback positions
+        if (!valid_position) {
+            switch (i) {
+                case 0: x = MAP_WIDTH - 10; y = MAP_HEIGHT - 10; break;
+                case 1: x = MAP_WIDTH - 15; y = 15; break;
+                case 2: x = MAP_WIDTH - 12; y = MAP_HEIGHT - 12; break;
+                case 3: x = MAP_WIDTH - 20; y = MAP_HEIGHT / 2; break;
+                case 4: x = 15; y = MAP_HEIGHT - 15; break;
+                default: x = MAP_WIDTH - 8; y = MAP_HEIGHT - 8; break;
+            }
+            // Ensure the fallback position is walkable
+            game_state->map.tiles[y][x] = TILE_EMPTY;
+        }
+        
+        // Set enemy position and type
+        game_state->enemies[i].x = x;
+        game_state->enemies[i].y = y;
+        
+        // Assign enemy type
+        switch (i % 5) {
+            case 0: game_state->enemies[i].type = ENTITY_ENEMY_CHASE; break;
+            case 1: game_state->enemies[i].type = ENTITY_ENEMY_RANDOM; break;
+            case 2: game_state->enemies[i].type = ENTITY_ENEMY_GUARD; break;
+            case 3: game_state->enemies[i].type = ENTITY_ENEMY_CHASE; break;
+            case 4: game_state->enemies[i].type = ENTITY_ENEMY_SMART; break;
         }
         
         game_state->enemies[i].health = 100;
@@ -194,7 +237,11 @@ void cleanup_ipc_channels(void) {
 // Send a message to an enemy process
 void send_message_to_enemy(int enemy_id, GameMessage *message) {
     if (enemy_id >= 0 && enemy_id < MAX_ENEMY_PROCESSES) {
-        write(main_to_enemy_pipe[enemy_id][1], message, sizeof(GameMessage));
+        ssize_t bytes_written = write(main_to_enemy_pipe[enemy_id][1], message, sizeof(GameMessage));
+        if (bytes_written != sizeof(GameMessage)) {
+            // Handle error - could not write full message
+            fprintf(stderr, "Warning: Could not write full message to enemy process %d\n", enemy_id);
+        }
     }
 }
 
@@ -226,7 +273,11 @@ bool receive_message_from_enemy(int enemy_id, GameMessage *message) {
 // Send a message from an enemy process to the main process
 void send_message_to_main(int enemy_id, GameMessage *message) {
     if (enemy_id >= 0 && enemy_id < MAX_ENEMY_PROCESSES) {
-        write(enemy_to_main_pipe[enemy_id][1], message, sizeof(GameMessage));
+        ssize_t bytes_written = write(enemy_to_main_pipe[enemy_id][1], message, sizeof(GameMessage));
+        if (bytes_written != sizeof(GameMessage)) {
+            // Handle error - could not write full message
+            fprintf(stderr, "Warning: Could not write full message to main process from enemy %d\n", enemy_id);
+        }
     }
 }
 
@@ -278,19 +329,29 @@ void enemy_process_main(int enemy_id, EntityType enemy_type) {
     GameMessage message;
     int player_x = -1, player_y = -1;
     int move_counter = 0;
+    time_t start_time = time(NULL);
+    bool can_track_player = false;
     
     // Main enemy loop
     while (running) {
         // Check for messages from main process
         if (receive_message_from_main(enemy_id, &message)) {
             if (message.message_type == MSG_POSITION_UPDATE) {
-                // Update known player position
-                player_x = message.x;
-                player_y = message.y;
+                // Only update known player position if tracking is enabled
+                if (can_track_player) {
+                    player_x = message.x;
+                    player_y = message.y;
+                }
             } else if (message.message_type == MSG_GAME_OVER) {
                 // Game over, exit the loop
                 running = false;
             }
+        }
+        
+        // Don't track the player for the first 5 seconds to give player time to move
+        time_t current_time = time(NULL);
+        if (!can_track_player && (current_time - start_time) >= 5) {
+            can_track_player = true;
         }
         
         // Don't move every cycle - only every few cycles based on enemy type
@@ -299,19 +360,24 @@ void enemy_process_main(int enemy_id, EntityType enemy_type) {
         
         switch (enemy_type) {
             case ENTITY_ENEMY_CHASE:
-                move_frequency = 15; // Much slower
+                move_frequency = 8; 
                 break;
             case ENTITY_ENEMY_RANDOM:
-                move_frequency = 20; // Slower
+                move_frequency = 10;
                 break;
             case ENTITY_ENEMY_GUARD:
-                move_frequency = 25; // Slower
+                move_frequency = 12;
                 break;
             case ENTITY_ENEMY_SMART:
-                move_frequency = 20; // Slower
+                move_frequency = 7;
                 break;
             default:
-                move_frequency = 20;
+                move_frequency = 10;
+        }
+        
+        // Increase move frequency at the beginning to slow down enemies
+        if (!can_track_player) {
+            move_frequency *= 2;
         }
         
         if (move_counter >= move_frequency) {
@@ -539,20 +605,27 @@ void check_player_enemy_collision(GameState *state) {
     if (!state) return;
     
     static time_t last_hit_time = 0;
-    static bool initial_invulnerability = true;
     time_t game_time = state->current_time - state->start_time;
     
-    // Initial invulnerability for the first 60 seconds
-    if (game_time < 60 && initial_invulnerability) {
-        // Clear the hit flag during invulnerability period
-        state->player_hit = false;
-        return;
-    } else if (game_time >= 60 && initial_invulnerability) {
-        initial_invulnerability = false;
+    // Check if player is in starting safe zone (near starting position)
+    bool in_safe_zone = false;
+    const int SAFE_ZONE_RADIUS = 5;
+    const int STARTING_X = 4;
+    const int STARTING_Y = 4;
+    
+    if (abs(state->players[0].x - STARTING_X) <= SAFE_ZONE_RADIUS && 
+        abs(state->players[0].y - STARTING_Y) <= SAFE_ZONE_RADIUS) {
+        in_safe_zone = true;
     }
     
-    // Also provide brief invulnerability after each hit (3 seconds)
-    if ((game_time - last_hit_time) < 3) {
+    // Safe zone immunity: no damage in starting area and within first 3 seconds
+    if (game_time < 3 || in_safe_zone) {
+        state->player_hit = false;
+        return;
+    }
+    
+    // Invulnerability after each hit to avoid rapid damage
+    if ((game_time - last_hit_time) < 1) {
         // Clear the hit flag during invulnerability period
         state->player_hit = false;
         return;
@@ -560,7 +633,7 @@ void check_player_enemy_collision(GameState *state) {
     
     if (state->player_hit) {
         // Player was hit - reduce health
-        state->players[0].health -= 5; // Reduced damage from 10 to 5
+        state->players[0].health -= 5; // Damage amount
         
         // Reset the hit flag
         state->player_hit = false;
