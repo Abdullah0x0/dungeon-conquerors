@@ -492,7 +492,7 @@ dungeon_conquerors/
 - `process.c`: Process management and AI
 - `main.c`: Main game loop and rendering
 
-## Future Enhancements
+## (What if) Future Enhancements
 
 1. **Potential Features**
    - Additional enemy types
