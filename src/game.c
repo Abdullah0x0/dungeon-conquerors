@@ -826,6 +826,15 @@ bool is_valid_move(GameState* state, int player_id, int dx, int dy) {
         return false;
     }
     
+    // Check for enemy collision
+    for (int i = 0; i < state->num_enemies; i++) {
+        if (state->enemies[i].is_active && 
+            state->enemies[i].x == new_x && 
+            state->enemies[i].y == new_y) {
+            return false;
+        }
+    }
+    
     return true;
 }
 
@@ -1378,71 +1387,15 @@ void generate_level(GameState *state, int level) {
     state->map.tiles[4][14] = TILE_DOOR;
     state->map.tiles[14][4] = TILE_DOOR;
     
-    // Add doors to create sections - reduced from 15 to 8
-    for (int i = 0; i < 8; i++) {
+    // Add doors to create sections - reduced to just 2 doors
+    for (int i = 0; i < 2; i++) {
         int x = 15 + rand() % (MAP_WIDTH - 25);
         int y = 15 + rand() % (MAP_HEIGHT - 25);
         state->map.tiles[y][x] = TILE_DOOR;
     }
     
-    // Set keys required based on level
-    state->keys_required = 5 + (level - 1) * 2; // 5 keys for level 1, 7 for level 2, etc.
-    state->keys_collected = 0;
-    state->exit_enabled = false;
-    
-    // Add keys - required amount plus 2 extra keys
-    int total_keys = state->keys_required + 2; // 2 extra keys beyond the requirement
-    for (int i = 0; i < total_keys; i++) {
-        int x, y;
-        do {
-            // Place keys farther from the starting point
-            x = 20 + rand() % (MAP_WIDTH - 25);
-            y = 20 + rand() % (MAP_HEIGHT - 25);
-        } while (state->map.tiles[y][x] != TILE_EMPTY);
-        
-        state->map.tiles[y][x] = TILE_KEY;
-        
-        // Create a path from this key to either the starting area or the map center
-        int path_x = x;
-        int path_y = y;
-        int target_x, target_y;
-        
-        // Alternate between creating paths to start and center to create connections
-        if (i % 2 == 0) {
-            // Path to starting area
-            target_x = 3;
-            target_y = 3;
-        } else {
-            // Path to center of map
-            target_x = MAP_WIDTH / 2;
-            target_y = MAP_HEIGHT / 2;
-        }
-        
-        // Create path from key to target
-        while ((abs(path_x - target_x) > 3) || (abs(path_y - target_y) > 3)) {
-            // Choose direction based on which axis has greater distance
-            if (abs(path_x - target_x) > abs(path_y - target_y)) {
-                // Move horizontally
-                path_x += (path_x < target_x) ? 1 : -1;
-            } else {
-                // Move vertically
-                path_y += (path_y < target_y) ? 1 : -1;
-            }
-            
-            // Clear current tile if it's a wall
-            if (state->map.tiles[path_y][path_x] == TILE_WALL) {
-                state->map.tiles[path_y][path_x] = TILE_EMPTY;
-            }
-            
-            // Occasionally place a door (5% chance instead of 10%)
-            if (rand() % 100 < 5 && state->map.tiles[path_y][path_x] == TILE_EMPTY) {
-                state->map.tiles[path_y][path_x] = TILE_DOOR;
-            }
-        }
-    }
-    
-    // Add treasures - reduced quantity for better balance
-    int num_treasures = MAP_WIDTH * MAP_HEIGHT / 100 + (level - 1) * 5; // Reduced from /50 to /100, and from *10 to *5
+    // Add treasures - minimal quantity
+    int num_treasures = MAP_WIDTH * MAP_HEIGHT / 400 + (level - 1); // Reduced from /200 to /400, and from *2 to *1
     for (int i = 0; i < num_treasures; i++) {
         int x = rand() % (MAP_WIDTH - 2) + 1;
         int y = rand() % (MAP_HEIGHT - 2) + 1;
@@ -1485,6 +1438,36 @@ void generate_level(GameState *state, int level) {
     
     // Reset level complete flag
     state->level_complete = false;
+    
+    // Increase enemy speed and aggression based on level
+    for (int i = 0; i < state->num_enemies; i++) {
+        Player* enemy = &state->enemies[i];
+        // Store speed and aggression in the score field temporarily
+        enemy->score = (int)((1.5f + (level * 0.2f)) * 100); // Store speed * 100
+        enemy->health = (int)((0.8f + (level * 0.1f)) * 100); // Store aggression * 100
+        enemy->keys = 10 + (level * 2); // Store detection range
+    }
+    
+    // Set keys required based on level
+    if (level == 1) {
+        state->keys_required = 5;  // Level 1: 5 keys
+    } else if (level == 2) {
+        state->keys_required = 7;  // Level 2: 7 keys
+    }
+    state->keys_collected = 0;
+    state->exit_enabled = false;
+    
+    // Add exactly the required number of keys
+    for (int i = 0; i < state->keys_required; i++) {
+        int x, y;
+        do {
+            // Place keys farther from the starting point
+            x = 20 + rand() % (MAP_WIDTH - 25);
+            y = 20 + rand() % (MAP_HEIGHT - 25);
+        } while (state->map.tiles[y][x] != TILE_EMPTY);
+        
+        state->map.tiles[y][x] = TILE_KEY;
+    }
     
     printf("Level %d generated: %d keys required\n", level, state->keys_required);
 } 
