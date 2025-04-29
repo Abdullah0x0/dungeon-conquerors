@@ -516,7 +516,3 @@ Developing Dungeon Conquerors presented several interesting challenges:
 ## Credits
 
 Developed as a demonstration of operating system concepts in action, showing how fundamental OS principles can be applied in a practical, interactive application.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
