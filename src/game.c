@@ -178,10 +178,15 @@ void* background_event_thread(void* data) {
     ThreadData* thread_data = (ThreadData*)data;
     
     while (background_thread_running) {
-        // Add random treasure periodically
         lock_game_state();
-        
-        if (game_state != NULL && !game_state->game_over) {
+        if (game_state && !game_state->game_over) {
+            // don't end the game before any player is even born
+            if (game_state->num_players == 0) {
+                unlock_game_state();
+                usleep(thread_data->interval_ms * 1000);
+                continue;
+            }
+            
             // Update game time
             game_state->current_time = time(NULL);
             
