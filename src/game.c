@@ -1467,6 +1467,44 @@ void generate_level(GameState *state, int level) {
         } while (state->map.tiles[y][x] != TILE_EMPTY);
         
         state->map.tiles[y][x] = TILE_KEY;
+        
+        // Create a path from this key to either the starting area or the map center
+        int path_x = x;
+        int path_y = y;
+        int target_x, target_y;
+        
+        // Alternate between creating paths to start and center to create connections
+        if (i % 2 == 0) {
+            // Path to starting area
+            target_x = 3;
+            target_y = 3;
+        } else {
+            // Path to center of map
+            target_x = MAP_WIDTH / 2;
+            target_y = MAP_HEIGHT / 2;
+        }
+        
+        // Create path from key to target
+        while ((abs(path_x - target_x) > 3) || (abs(path_y - target_y) > 3)) {
+            // Choose direction based on which axis has greater distance
+            if (abs(path_x - target_x) > abs(path_y - target_y)) {
+                // Move horizontally
+                path_x += (path_x < target_x) ? 1 : -1;
+            } else {
+                // Move vertically
+                path_y += (path_y < target_y) ? 1 : -1;
+            }
+            
+            // Clear current tile if it's a wall
+            if (state->map.tiles[path_y][path_x] == TILE_WALL) {
+                state->map.tiles[path_y][path_x] = TILE_EMPTY;
+            }
+            
+            // Occasionally place a door (5% chance)
+            if (rand() % 100 < 5 && state->map.tiles[path_y][path_x] == TILE_EMPTY) {
+                state->map.tiles[path_y][path_x] = TILE_DOOR;
+            }
+        }
     }
     
     printf("Level %d generated: %d keys required\n", level, state->keys_required);
