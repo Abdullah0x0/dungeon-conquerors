@@ -2,12 +2,69 @@
 
 A multi-process, dungeon exploration game that demonstrates key operating system concepts through interactive gameplay.
 
-## Demo Video
-[Demo Video Link] - Upload your demo to YouTube and paste the link here
-
 ## Game Overview
 
 Dungeon Conquerors is a challenging top-down dungeon exploration game where the player must navigate a procedurally generated maze, collect keys, and find the exit while avoiding deadly enemies. Each enemy operates as an independent process with its own AI behavior, hunting the player throughout the dungeon. The game demonstrates multiple operating system concepts in action through its multi-process architecture and resource sharing mechanisms.
+
+&nbsp;
+
+<p align="center">
+  <img width="1272" alt="DQ INTRO" src="https://github.com/user-attachments/assets/4ee7f8c1-6dc7-4410-82ac-bf122473c11c" />
+
+<br>
+  <strong><em>Intro Screen – Title and Start Prompt</em></strong>
+</p>
+
+&nbsp;
+
+<p align="center">
+  <img width="1270" alt="DQ INITIAL GAMEPLAY" src="https://github.com/user-attachments/assets/7c946df1-eea7-4be7-9869-4d54b4e89213" />
+
+<br>
+  <strong><em>Gameplay – Initial Gameplay</em></strong>
+</p>
+
+&nbsp;
+
+<p align="center">
+  <img width="1275" alt="DQ GAMEPLAY" src="https://github.com/user-attachments/assets/b11a8c95-64ad-4a2a-870e-b595758022ad" />
+
+<br>
+  <strong><em>Gameplay – Encounter with Enemies of Varying Types</em></strong>
+</p>
+
+&nbsp;
+
+<p align="center">
+  <img width="1275" alt="DQ LEVEL 2" src="https://github.com/user-attachments/assets/fe1f8594-1eb4-476a-9927-13f6dcbf1ec1" />
+
+<br>
+  <strong><em>Gameplay – Level 2 (More Keys Required to Escape)</em></strong>
+</p>
+
+&nbsp;
+
+<p align="center">
+  <img width="1273" alt="DQ DEFEAT" src="https://github.com/user-attachments/assets/ee03d559-aebf-4313-a05d-74873be4ec0c" />
+
+<br>
+  <strong><em>Game Over Screen – Defeat</em></strong>
+</p>
+
+&nbsp;
+
+<p align="center">
+  <img width="1269" alt="DQ VICTORY" src="https://github.com/user-attachments/assets/4dbc0715-83d9-4ed5-8cdd-59000a5f38ef" />
+<br>
+  <strong><em>Game Over Screen – Victory</em></strong>
+</p>
+
+&nbsp;
+
+## Demo Video
+Watch a short gameplay showcase of *Dungeon Conquerors* in action:
+
+📺 [Demo Video on YouTube](https://youtu.be/kbbg04L2buc)
 
 ## Game Design
 
@@ -38,6 +95,7 @@ Dungeon Conquerors is a challenging top-down dungeon exploration game where the 
    - Empty tiles (walkable)
    - Walls (block movement)
    - Doors (can be opened)
+     - Can reward you with bonus points or restore some health
    - Treasure (grants score)
    - Keys (required for exit)
    - Exit (win condition)
